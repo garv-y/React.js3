@@ -5,6 +5,7 @@ interface Props {
   field: FieldConfig;
   value: any;
   onChange: (val: any) => void;
+  darkMode?: boolean;
 }
 
 const FieldRenderer: React.FC<Props> = ({ field, value, onChange }) => {

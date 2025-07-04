@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import FieldBuilder from "./FieldBuilder";
 import FieldRenderer from "./FieldRenderer";
 import type { FieldConfig, FieldType } from "../types/types";
@@ -18,8 +18,22 @@ const FormBuilder: React.FC = () => {
     [key: string]: any;
   } | null>(null);
   const [useShortForm, setUseShortForm] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    return (localStorage.getItem("theme") as "light" | "dark") || "light";
+  });
 
-  // Add new field from toolbox
+  useEffect(() => {
+    document.body.className = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("submittedData");
+    if (saved) {
+      setSubmittedData(null); // clear on load
+    }
+  }, []);
+
   const addField = (type: FieldType) => {
     const id = Date.now();
     const newField: FieldItem = {
@@ -38,7 +52,6 @@ const FormBuilder: React.FC = () => {
     setFields((prev) => [...prev, newField]);
   };
 
-  // Field updates
   const updateField = (id: number, config: FieldConfig) => {
     setFields((prev) => prev.map((f) => (f.id === id ? { ...f, config } : f)));
   };
@@ -48,32 +61,48 @@ const FormBuilder: React.FC = () => {
   };
 
   const handleResponseChange = (id: number, value: any) => {
-    setFormResponses((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
+    setFormResponses((prev) => ({ ...prev, [id]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const result: { [key: string]: any } = {};
-
     fields.forEach((field) => {
       if (!useShortForm || field.config.displayOnShortForm) {
         const value = formResponses[field.id];
         result[field.config.label || `Field ${field.id}`] = value;
       }
     });
-
     setSubmittedData(result);
     localStorage.setItem("submittedData", JSON.stringify(result));
   };
 
   return (
     <div className="d-flex">
-      {/* Left: Form + Builder */}
       <div className="container mt-4 flex-grow-1">
-        <h3 className="mb-3">Form Builder</h3>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h3>Form Builder</h3>
+          <button
+            className={`btn ${
+              theme === "dark" ? "btn-outline-light" : "btn-outline-dark"
+            } mb-2`}
+            onClick={() =>
+              setTheme((prev) => (prev === "light" ? "dark" : "light"))
+            }
+            onMouseEnter={(e) => {
+              if (theme === "dark") e.currentTarget.style.color = "#000";
+            }}
+            onMouseLeave={(e) => {
+              if (theme === "dark") e.currentTarget.style.color = "#fff";
+            }}
+            style={{
+              color: theme === "dark" ? "#fff" : undefined,
+              borderColor: theme === "dark" ? "#fff" : undefined,
+            }}
+          >
+            Switch to {theme === "light" ? "Dark" : "Light"} Theme
+          </button>
+        </div>
 
         <div className="mb-4">
           <label className="form-label">Form Title</label>
@@ -86,13 +115,16 @@ const FormBuilder: React.FC = () => {
         </div>
 
         {fields.map((field, index) => (
-          <div key={field.id} className="mb-4 border rounded p-3 bg-light">
+          <div
+            key={field.id}
+            className="mb-4 border rounded p-3 bg-light dark-bg-card"
+          >
             <div className="d-flex justify-content-between align-items-center mb-2">
               <h5>
                 Field #{index + 1} - {field.config.type}
               </h5>
               <button
-                className="btn btn-sm btn-danger"
+                className="btn btn-sm btn-outline-danger"
                 onClick={() => removeField(field.id)}
               >
                 Remove
@@ -118,8 +150,7 @@ const FormBuilder: React.FC = () => {
           </label>
         </div>
 
-        {/* Live Preview */}
-        <div className="p-4 border rounded bg-white shadow-sm">
+        <div className="p-4 border rounded bg-white shadow-sm dark-bg-card">
           <h4 className="mb-3">Live Preview</h4>
           <h5>{formTitle}</h5>
           <form onSubmit={handleSubmit}>
@@ -131,9 +162,10 @@ const FormBuilder: React.FC = () => {
                   field={f.config}
                   value={formResponses[f.id]}
                   onChange={(val: any) => handleResponseChange(f.id, val)}
+                  darkMode={theme === "dark"}
                 />
               ))}
-            <button type="submit" className="btn btn-dark mt-3">
+            <button type="submit" className="btn btn-outline-success mt-3">
               Submit
             </button>
           </form>
@@ -142,16 +174,15 @@ const FormBuilder: React.FC = () => {
         {submittedData && (
           <div className="mt-4">
             <h5>Submitted Data:</h5>
-            <pre className="bg-light p-3 border rounded">
+            <pre className="bg-light p-3 border rounded dark-bg-card">
               {JSON.stringify(submittedData, null, 2)}
             </pre>
           </div>
         )}
       </div>
 
-      {/* Right: Toolbox */}
       <div
-        className="toolbox-sidebar bg-white border-start p-3"
+        className="toolbox-sidebar bg-white border-start p-3 dark-bg-card"
         style={{ width: "250px" }}
       >
         <h5 className="mb-3">Toolbox</h5>
